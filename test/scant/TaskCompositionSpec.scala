@@ -66,7 +66,8 @@ class TaskCompositionSpec extends Specification { def is =
     val ids = ListBuffer(0, 0)
     val tasks: Seq[Objective] = (1 to 3).map(i => watermark(ids))
     val task = tasks.reduceLeft(_ and _)
-    task()
+    val outcome = task()
+//    outcome must beEqualTo(CompositeOutcome(Success +: Success +: Success +: Nil))
     ids must contain(0, 3).only.inOrder
   }
 
@@ -100,16 +101,19 @@ class TaskCompositionSpec extends Specification { def is =
 
 object SampleProject extends Project {
   case class custom(buffer: ListBuffer[Int], id: Int, delay: Long = 0L) extends Task({() =>
+    val start = System.currentTimeMillis() // TODO - this is boilerplate
     Thread.sleep(delay)
     buffer += id
-    Success
+    Success(start, System.currentTimeMillis())
   })
 
   case class watermark(marks: ListBuffer[Int]) extends Task({() =>
+    val start = System.currentTimeMillis() // TODO - this is boilerplate
     marks(0) = marks.head + 1
-    marks(1) = math.max(marks.tail.head, marks(0))
+    marks(1) = math.max(marks(1), marks(0))
+    println(marks)
     Thread.sleep(50L)
     marks(0) = marks.head - 1
-    Success
+    Success(start, System.currentTimeMillis())
   })
 }
